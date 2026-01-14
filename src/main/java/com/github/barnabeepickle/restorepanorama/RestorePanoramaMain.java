@@ -10,9 +10,11 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjglx.input.Keyboard;
@@ -29,13 +31,15 @@ public class RestorePanoramaMain {
     private KeyBinding panoramaKeyBind;
 
     @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
+    public void init(FMLPreInitializationEvent event) {
         PANORAMA_DIR = new File(Minecraft.getMinecraft().gameDir, "panoramas");
 
-        panoramaKeyBind = new KeyBinding("key." + Reference.MODID + ".take", Keyboard.KEY_F9, "key." + Reference.MODID + ".category");
+        panoramaKeyBind = new KeyBinding("key." + Reference.MODID + ".take", Keyboard.KEY_F9, "key.category." + Reference.MODID);
+
         ClientRegistry.registerKeyBinding(panoramaKeyBind);
     }
 
+    @SideOnly(Side.CLIENT)
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
