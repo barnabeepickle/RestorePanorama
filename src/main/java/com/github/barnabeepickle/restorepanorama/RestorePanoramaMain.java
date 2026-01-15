@@ -9,6 +9,7 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -34,142 +35,142 @@ public class RestorePanoramaMain {
     @Mod.EventHandler
     public void init(FMLPreInitializationEvent event) {
         PANORAMA_DIR = new File(Minecraft.getMinecraft().gameDir, "panoramas");
-        LOGGER.info("Created PANORAMA_DIR");
 
         panoramaKeyBind = new KeyBinding("key." + Reference.MODID + ".take", KeyConflictContext.IN_GAME, Keyboard.KEY_F9, "key.category." + Reference.MODID);
-        LOGGER.info("Created panoramaKeyBind");
-
         ClientRegistry.registerKeyBinding(panoramaKeyBind);
-        LOGGER.info("Registered panoramaKeyBind");
+
+        MinecraftForge.EVENT_BUS.register(ClientEventListener.class);
+        LOGGER.info("Registered " + Reference.MOD_NAME + " ClientEventListener.class on the EVENT_BUS");
     }
 
-    @SideOnly(Side.CLIENT)
-    @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            LOGGER.info(Reference.MOD_NAME + " TickEvent.ClientTickEvent in Phase.END has fired.");
-            Minecraft client = Minecraft.getMinecraft();
-            while (panoramaKeyBind.isPressed()) {
-                if (client.player != null && !client.isGamePaused()) {
-                    PANORAMA_DIR.mkdirs();
+    public static class ClientEventListener {
+        @SideOnly(Side.CLIENT)
+        @SubscribeEvent
+        public static void onClientTick(TickEvent.ClientTickEvent event) {
+            if (event.phase == TickEvent.Phase.END) {
+                Minecraft client = Minecraft.getMinecraft();
+                while (panoramaKeyBind.isPressed()) {
+                    if (client.player != null && !client.isGamePaused()) {
+                        PANORAMA_DIR.mkdirs();
 
-                    LOGGER.info("Attempting to take panorama screenshot, the game might freeze for a moment!");
-                    ITextComponent feedbackMessage = takePanoramaScreenshots(client, PANORAMA_DIR);
+                        LOGGER.info("Attempting to take panorama screenshot, the game might freeze for a moment!");
+                        ITextComponent feedbackMessage = takePanoramaScreenshots(client, PANORAMA_DIR);
 
-                    if (feedbackMessage != null) {
-                        client.player.sendMessage(feedbackMessage);
+                        if (feedbackMessage != null) {
+                            client.player.sendMessage(feedbackMessage);
+                        }
                     }
                 }
             }
         }
-    }
 
-    // This code is inspired by the "disabled" panorama screenshot code in later versions of Minecraft
-    /**
-     * Takes a panorama. The panorama is stored in the provided {@code dir}, it takes
-     * and saves 6 screenshots of size {@code width} and {@code height}.
-     * @param client An instance of {@code Minecraft}
-     * @param dir The directory where the panorama screenshots are to be saved
-     * @return a translatable piece of text dependent on the screenshot result.
-     */
-    public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
-        // height and width that the panorama images will be rendered at (should be the same)
-        int height = 4096;
-        int width = 4096;
-        // the height and width is down sampled later
+        // This code is inspired by the "disabled"/inaccessible panorama screenshot code in later versions of Minecraft
+        /**
+         * Takes a panorama. The panorama is stored in the provided {@code dir}, it takes
+         * and saves 6 screenshots of size {@code width} and {@code height}.
+         * @param client An instance of {@code Minecraft}
+         * @param dir The directory where the panorama screenshots are to be saved
+         * @return a translatable piece of text dependent on the screenshot result.
+         */
+        @SideOnly(Side.CLIENT)
+        public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
+            // height and width that the panorama images will be rendered at (should be the same)
+            int height = 4096;
+            int width = 4096;
 
-        int originalHeight = client.displayHeight;
-        int originalWidth = client.displayWidth;
+            int originalHeight = client.displayHeight;
+            int originalWidth = client.displayWidth;
 
-        Framebuffer frameBuffer = client.getFramebuffer();
+            Framebuffer frameBuffer = client.getFramebuffer();
 
-        float pitch = client.player.rotationPitch;
-        float yaw = getPlayerYaw(client);
-        float lastPitch = client.player.prevRotationPitch;
-        float lastYaw = client.player.prevRotationYaw;
+            float pitch = client.player.rotationPitch;
+            float yaw = client.player.rotationYaw;
+            float lastPitch = client.player.prevRotationPitch;
+            float lastYaw = client.player.prevRotationYaw;
 
-        float playerFov = client.getRenderManager().options.fovSetting;
+            float playerFov = client.getRenderManager().options.fovSetting;
 
-        client.getRenderManager().setRenderOutlines(false);
+            boolean originalHideGUI = client.gameSettings.hideGUI;
+            client.gameSettings.hideGUI = true;
 
-        ITextComponent text;
-        try {
-            client.getRenderManager().options.fovSetting = 90.0F;
+            ITextComponent text;
+            try {
+                client.getRenderManager().options.fovSetting = 90.0F;
 
-            client.displayHeight = height;
-            client.displayWidth = width;
-            frameBuffer.framebufferRender(width, height);
+                client.displayHeight = height;
+                client.displayWidth = width;
+                //frameBuffer.createBindFramebuffer(width, height);
 
-            for (int i = 0; i < 6; i++) {
-                switch (i) {
-                    case 0:
-                        client.player.rotationYaw = yaw;
-                        client.player.rotationPitch = 0.0F;
-                        break;
-                    case 1:
-                        client.player.rotationYaw = (yaw + 90.0F) % 360.0F;
-                        client.player.rotationPitch = 0.0F;
-                        break;
-                    case 2:
-                        client.player.rotationYaw = (yaw + 180.0F) % 360.0F;
-                        client.player.rotationPitch = 0.0F;
-                        break;
-                    case 3:
-                        client.player.rotationYaw = (yaw - 90.0F) % 360.0F;
-                        client.player.rotationPitch = 0.0F;
-                        break;
-                    case 4:
-                        client.player.rotationYaw = yaw;
-                        client.player.rotationPitch = 0.0F;
-                        break;
-                    case 5:
-                    default:
-                        client.player.rotationYaw = yaw;
-                        client.player.rotationPitch = 0.0F;
+                for (int i = 0; i < 6; i++) {
+                    switch (i) {
+                        case 0:
+                            client.player.rotationYaw = yaw;
+                            client.player.rotationPitch = 0.0F;
+                            break;
+                        case 1:
+                            client.player.rotationYaw = (client.player.rotationYaw + 90.0F) % 360.0F;
+                            client.player.rotationPitch = 0.0F;
+                            break;
+                        case 2:
+                            client.player.rotationYaw = (client.player.rotationYaw + 180.0F) % 360.0F;
+                            client.player.rotationPitch = 0.0F;
+                            break;
+                        case 3:
+                            client.player.rotationYaw = (client.player.rotationYaw - 90.0F) % 360.0F;
+                            client.player.rotationPitch = 0.0F;
+                            break;
+                        case 4:
+                            client.player.rotationYaw = yaw;
+                            client.player.rotationPitch = -90.0F;
+                            break;
+                        case 5:
+                        default:
+                            client.player.rotationYaw = yaw;
+                            client.player.rotationPitch = 90.0F;
+                    }
+
+                    client.player.prevRotationYaw = client.player.rotationYaw;
+                    client.player.prevRotationPitch = client.player.rotationPitch;
+
+                    client.entityRenderer.updateCameraAndRender(client.isGamePaused() ? client.renderPartialTicksPaused : client.timer.renderPartialTicks, System.nanoTime());
+
+                    frameBuffer.framebufferRender(width, height);
+
+                    try {
+                        Thread.sleep(10L);
+                    } catch (InterruptedException ignored) {
+                    }
+
+                    ScreenShotHelper.saveScreenshot(dir, "panorama_" + i + ".png", 1024, 1024, frameBuffer);
                 }
 
-                client.player.prevRotationYaw = client.player.rotationYaw;
-                client.player.prevRotationPitch = client.player.rotationPitch;
+                ITextComponent interactText = new TextComponentString(dir.getName());
+                interactText.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, dir.getAbsolutePath()));
+                interactText.getStyle().setUnderlined(Boolean.TRUE);
 
-                try {
-                    Thread.sleep(10L);
-                } catch (InterruptedException ignored) {
-                }
+                text = new TextComponentTranslation("screenshot." + Reference.MODID + ".success", interactText);
 
-                ScreenShotHelper.saveScreenshot(dir, "panorama_" + i + ".png", width / 4, height / 4, frameBuffer);
-                // the height and width are down sampled here
+            } catch (Exception e) {
+                LOGGER.error("Was unable to save panorama", e);
+                text = new TextComponentTranslation("screenshot." + Reference.MODID + ".failure", e.getMessage());
+            } finally {
+                // reset everthing important back to how it was
+                client.player.rotationPitch = pitch;
+                client.player.rotationYaw = yaw;
+                client.player.prevRotationPitch = lastPitch;
+                client.player.prevRotationYaw = lastYaw;
+
+                client.getRenderManager().options.fovSetting = playerFov;
+
+                client.gameSettings.hideGUI = originalHideGUI;
+
+                client.displayHeight = originalHeight;
+                client.displayWidth = originalWidth;
+
+                //frameBuffer.createBindFramebuffer(originalWidth, originalHeight);
             }
 
-            ITextComponent interactText = new TextComponentString(dir.getName());
-            interactText.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, dir.getAbsolutePath()));
-            interactText.getStyle().setUnderlined(Boolean.TRUE);
-
-            return new TextComponentTranslation("screenshot." + Reference.MODID + ".success", interactText);
-
-        } catch (Exception e) {
-            LOGGER.error("Was unable to save panorama", e);
-            text = new TextComponentTranslation("screenshot." + Reference.MODID + ".failure", e.getMessage());
-        } finally {
-            // reset everthing important back to how it was
-            client.player.rotationPitch = pitch;
-            client.player.rotationYaw = yaw;
-            client.player.prevRotationPitch = lastPitch;
-            client.player.prevRotationYaw = lastYaw;
-
-            client.getRenderManager().options.fovSetting = playerFov;
-
-            client.getRenderManager().setRenderOutlines(true);
-
-            client.displayHeight = originalHeight;
-            client.displayWidth = originalWidth;
-
-            frameBuffer.framebufferRender(originalWidth, originalHeight);
+            return text;
         }
-
-        return text;
-    }
-
-    private static float getPlayerYaw(Minecraft client) {
-        return client.player.rotationYaw;
     }
 }
