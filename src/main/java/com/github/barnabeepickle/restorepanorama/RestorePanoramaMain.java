@@ -3,7 +3,6 @@ package com.github.barnabeepickle.restorepanorama;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.shader.Framebuffer;
-import net.minecraft.util.ScreenShotHelper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
@@ -54,7 +53,6 @@ public class RestorePanoramaMain {
                         PANORAMA_DIR.mkdirs();
 
                         LOGGER.info("Attempting to take panorama screenshot, the game might freeze for a moment!");
-                        client.player.sendMessage(new TextComponentTranslation("screenshot." + Reference.MODID + ".start"));
                         ITextComponent feedbackMessage = takePanoramaScreenshots(client, PANORAMA_DIR);
 
                         if (feedbackMessage != null) {
@@ -112,6 +110,9 @@ public class RestorePanoramaMain {
             boolean originalHideGUI = client.gameSettings.hideGUI;
             client.gameSettings.hideGUI = true;
 
+            File subDirectory = new File(dir, "panorama_" + CustomScreenShotHelper.getTimeStamp());
+            subDirectory.mkdir();
+
             ITextComponent text;
             try {
                 client.getRenderManager().options.fovSetting = 90.0F;
@@ -164,11 +165,14 @@ public class RestorePanoramaMain {
                     } catch (InterruptedException ignored) {
                     }
 
-                    ScreenShotHelper.saveScreenshot(dir, "panorama_" + i + ".png", 1024, 1024, frameBuffer);
+                    client.entityRenderer.updateCameraAndRender(client.isGamePaused() ? client.renderPartialTicksPaused : client.timer.renderPartialTicks, System.nanoTime());
+                    frameBuffer.framebufferRender(width, height);
+
+                    CustomScreenShotHelper.saveScreenshot(subDirectory, "panorama_" + i + ".png", 1024, 1024, frameBuffer);
                 }
 
-                ITextComponent interactText = new TextComponentString(dir.getName());
-                interactText.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, dir.getAbsolutePath()));
+                ITextComponent interactText = new TextComponentString(subDirectory.getName());
+                interactText.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, subDirectory.getAbsolutePath()));
                 interactText.getStyle().setUnderlined(Boolean.TRUE);
 
                 text = new TextComponentTranslation("screenshot." + Reference.MODID + ".success", interactText);
