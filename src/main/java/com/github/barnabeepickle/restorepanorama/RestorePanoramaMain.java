@@ -64,16 +64,29 @@ public class RestorePanoramaMain {
             }
         }
 
+        /**
+         * Takes a panorama. The panorama is stored in the provided {@code dir}, it takes
+         * and saves 6 screenshots of size {@code width} and {@code height},this overload
+         * always straightens the player's view to {@code 0.0F}.
+         * @param client An instance of {@code Minecraft}.
+         * @param dir The directory where the panorama screenshots are to be saved.
+         * @return a translatable piece of text dependent on the screenshot result.
+         */
+        public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
+            return takePanoramaScreenshots(client, dir , true);
+        }
+
         // This code is inspired by the "disabled"/inaccessible panorama screenshot code in later versions of Minecraft
         /**
          * Takes a panorama. The panorama is stored in the provided {@code dir}, it takes
          * and saves 6 screenshots of size {@code width} and {@code height}.
-         * @param client An instance of {@code Minecraft}
-         * @param dir The directory where the panorama screenshots are to be saved
+         * @param client An instance of {@code Minecraft}.
+         * @param dir The directory where the panorama screenshots are to be saved.
+         * @param onAxis If the player's view should be snapped straight to {@code 0.0F} or start from where they are currently looking.
          * @return a translatable piece of text dependent on the screenshot result.
          */
         @SideOnly(Side.CLIENT)
-        public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
+        public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir, boolean onAxis) {
             // height and width that the panorama images will be rendered at (should be the same)
             int height = 4096;
             int width = 4096;
@@ -82,6 +95,11 @@ public class RestorePanoramaMain {
             int originalWidth = client.displayWidth;
 
             Framebuffer frameBuffer = client.getFramebuffer();
+
+            float workingYaw = client.player.rotationYaw;
+            if (onAxis) {
+                workingYaw = 0.0F;
+            }
 
             float pitch = client.player.rotationPitch;
             float yaw = client.player.rotationYaw;
@@ -99,12 +117,12 @@ public class RestorePanoramaMain {
 
                 client.displayHeight = height;
                 client.displayWidth = width;
-                //frameBuffer.createBindFramebuffer(width, height);
+                frameBuffer.createBindFramebuffer(width, height);
 
                 for (int i = 0; i < 6; i++) {
                     switch (i) {
                         case 0:
-                            client.player.rotationYaw = yaw;
+                            client.player.rotationYaw = workingYaw;
                             client.player.rotationPitch = 0.0F;
                             break;
                         case 1:
@@ -120,20 +138,24 @@ public class RestorePanoramaMain {
                             client.player.rotationPitch = 0.0F;
                             break;
                         case 4:
-                            client.player.rotationYaw = yaw;
+                            client.player.rotationYaw = workingYaw;
                             client.player.rotationPitch = -90.0F;
                             break;
                         case 5:
                         default:
-                            client.player.rotationYaw = yaw;
+                            client.player.rotationYaw = workingYaw;
                             client.player.rotationPitch = 90.0F;
                     }
 
                     client.player.prevRotationYaw = client.player.rotationYaw;
                     client.player.prevRotationPitch = client.player.rotationPitch;
 
-                    client.entityRenderer.updateCameraAndRender(client.isGamePaused() ? client.renderPartialTicksPaused : client.timer.renderPartialTicks, System.nanoTime());
+                    try {
+                        Thread.sleep(10L);
+                    } catch (InterruptedException ignored) {
+                    }
 
+                    client.entityRenderer.updateCameraAndRender(client.isGamePaused() ? client.renderPartialTicksPaused : client.timer.renderPartialTicks, System.nanoTime());
                     frameBuffer.framebufferRender(width, height);
 
                     try {
@@ -167,7 +189,7 @@ public class RestorePanoramaMain {
                 client.displayHeight = originalHeight;
                 client.displayWidth = originalWidth;
 
-                //frameBuffer.createBindFramebuffer(originalWidth, originalHeight);
+                frameBuffer.createBindFramebuffer(originalWidth, originalHeight);
             }
 
             return text;
