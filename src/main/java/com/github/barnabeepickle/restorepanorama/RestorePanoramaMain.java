@@ -28,27 +28,30 @@ public class RestorePanoramaMain {
 
     private static File PANORAMA_DIR;
 
-    private KeyBinding panoramaKeyBind;
+    private static KeyBinding panoramaKeyBind;
 
     @Mod.EventHandler
     public void init(FMLPreInitializationEvent event) {
         PANORAMA_DIR = new File(Minecraft.getMinecraft().gameDir, "panoramas");
+        LOGGER.info("Created PANORAMA_DIR");
 
         panoramaKeyBind = new KeyBinding("key." + Reference.MODID + ".take", Keyboard.KEY_F9, "key.category." + Reference.MODID);
+        LOGGER.info("Created panoramaKeyBind");
 
         ClientRegistry.registerKeyBinding(panoramaKeyBind);
+        LOGGER.info("Registered panoramaKeyBind");
     }
 
     @SideOnly(Side.CLIENT)
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             Minecraft client = Minecraft.getMinecraft();
             while (panoramaKeyBind.isPressed()) {
                 if (client.player != null && !client.isGamePaused()) {
                     PANORAMA_DIR.mkdirs();
 
-                    ITextComponent feedbackMessage = this.takePanoramaScreenshots(client, PANORAMA_DIR);
+                    ITextComponent feedbackMessage = takePanoramaScreenshots(client, PANORAMA_DIR);
 
                     if (feedbackMessage != null) {
                         client.player.sendMessage(feedbackMessage);
@@ -66,7 +69,7 @@ public class RestorePanoramaMain {
      * @param dir The directory where the panorama screenshots are to be saved
      * @return a translatable piece of text dependent on the screenshot result.
      */
-    public ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
+    public static ITextComponent takePanoramaScreenshots(Minecraft client, File dir) {
         // height and width that the panorama images will be rendered at (should be the same)
         int height = 4096;
         int width = 4096;
@@ -78,7 +81,7 @@ public class RestorePanoramaMain {
         Framebuffer frameBuffer = client.getFramebuffer();
 
         float pitch = client.player.rotationPitch;
-        float yaw = this.getPlayerYaw(client);
+        float yaw = getPlayerYaw(client);
         float lastPitch = client.player.prevRotationPitch;
         float lastYaw = client.player.prevRotationYaw;
 
@@ -163,7 +166,7 @@ public class RestorePanoramaMain {
         return text;
     }
 
-    private float getPlayerYaw(Minecraft client) {
+    private static float getPlayerYaw(Minecraft client) {
         return client.player.rotationYaw;
     }
 }
