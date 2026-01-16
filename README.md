@@ -2,7 +2,7 @@
 
 <img src="src/main/resources/banner.png" alt="Make Panorama Logo" width=10% height=10%>
 
-A simple Minecraft mod that adds the abilty to make high fidelity panorama screenshots to Minecraft 1.12.2
+A simple Minecraft mod that adds the abilty to take high fidelity panorama screenshots to Minecraft 1.12.2
 
 ## About
 
