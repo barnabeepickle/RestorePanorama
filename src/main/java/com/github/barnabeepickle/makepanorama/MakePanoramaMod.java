@@ -168,7 +168,7 @@ public class MakePanoramaMod {
                     client.entityRenderer.updateCameraAndRender(client.isGamePaused() ? client.renderPartialTicksPaused : client.timer.renderPartialTicks, System.nanoTime());
                     frameBuffer.framebufferRender(width, height);
 
-                    CustomScreenShotHelper.saveScreenshot(subDirectory, "panorama_" + i + ".png", 1024, 1024, frameBuffer);
+                    CustomScreenShotHelper.saveScreenshot(subDirectory, "panorama_" + i + ".png", width, height, frameBuffer, 4);
                 }
 
                 ITextComponent interactText = new TextComponentString(subDirectory.getName());
